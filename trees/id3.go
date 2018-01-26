@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sjwhitworth/golearn/base"
-	"github.com/sjwhitworth/golearn/evaluation"
 	"sort"
+
+	"github.com/amclay/golearn/base"
+	"github.com/amclay/golearn/evaluation"
 )
 
 // NodeType determines whether a DecisionTreeNode is a leaf or not.
