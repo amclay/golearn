@@ -41,7 +41,7 @@ func (d *DecisionTreeRule) MarshalJSON() ([]byte, error) {
 	marshaledSplitAttr := make(map[string]interface{})
 	err = json.Unmarshal(marshaledSplitAttrRaw, &marshaledSplitAttr)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	ret["split_attribute"] = marshaledSplitAttr
 	ret["split_val"] = d.SplitVal
@@ -61,14 +61,13 @@ func (d *DecisionTreeRule) unmarshalJSON(data []byte) error {
 	split := jsonMap["split_attribute"]
 	splitBytes, err := json.Marshal(split)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	d.SplitAttr, err = base.DeserializeAttribute(splitBytes)
 	if err != nil {
 		return err
 	}
 	if d.SplitAttr == nil {
-		panic("Should not be nil")
 		return fmt.Errorf("base.DeserializeAttribute returned nil")
 	}
 	return nil
@@ -124,7 +123,7 @@ func (d *DecisionTreeNode) MarshalJSON() ([]byte, error) {
 		var dRule map[string]interface{}
 		err = json.Unmarshal(rawDRule, &dRule)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		ret["split_rule"] = dRule
 	}
@@ -148,7 +147,7 @@ func (d *DecisionTreeNode) MarshalJSON() ([]byte, error) {
 			var child map[string]interface{}
 			err = json.Unmarshal(cur, &child)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			children[k] = child
 		}
@@ -203,7 +202,7 @@ func (d *DecisionTreeNode) UnmarshalJSON(data []byte) error {
 		d.SplitRule = &DecisionTreeRule{}
 		splitRuleBytes, err := json.Marshal(splitRule)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = d.SplitRule.UnmarshalJSON(splitRuleBytes)
 		if err != nil {
@@ -216,7 +215,7 @@ func (d *DecisionTreeNode) UnmarshalJSON(data []byte) error {
 			cur := &DecisionTreeNode{}
 			childBytes, err := json.Marshal(childMap[i])
 			if err != nil {
-				panic(err)
+				return err
 			}
 			err = cur.UnmarshalJSON(childBytes)
 			if err != nil {
@@ -457,11 +456,11 @@ func (d *DecisionTreeNode) Predict(what base.FixedDataGrid) (base.FixedDataGrid,
 	classAttr := getClassAttr(predictions)
 	classAttrSpec, err := predictions.GetAttribute(classAttr)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	predAttrs := base.AttributeDifferenceReferences(what.AllAttributes(), predictions.AllClassAttributes())
 	predAttrSpecs := base.ResolveAttributes(what, predAttrs)
-	what.MapOverRows(predAttrSpecs, func(row [][]byte, rowNo int) (bool, error) {
+	whatErr := what.MapOverRows(predAttrSpecs, func(row [][]byte, rowNo int) (bool, error) {
 		cur := d
 		for {
 			if cur.Children == nil {
@@ -474,7 +473,7 @@ func (d *DecisionTreeNode) Predict(what base.FixedDataGrid) (base.FixedDataGrid,
 				if err != nil {
 					//predictions.Set(classAttrSpec, rowNo, classAttr.GetSysValFromString(cur.Class))
 					//break
-					panic(err)
+					return false, err
 				}
 
 				var classVar string
@@ -507,14 +506,16 @@ func (d *DecisionTreeNode) Predict(what base.FixedDataGrid) (base.FixedDataGrid,
 		}
 		return true, nil
 	})
-	return predictions, nil
+	return predictions, whatErr
 }
 
+// ClassProba is a struct containing a probability to a class
 type ClassProba struct {
 	Probability float64
 	ClassValue  string
 }
 
+// ClassesProba is an array of ClassProbas
 type ClassesProba []ClassProba
 
 func (o ClassesProba) Len() int {
@@ -527,7 +528,7 @@ func (o ClassesProba) Less(i, j int) bool {
 	return o[i].Probability > o[j].Probability
 }
 
-// Predict class probabilities of the input samples what, returns a sorted array (by probability) of classes, and another array representing it's probabilities
+// PredictProba predicts class probabilities of the input samples what, returns a sorted array (by probability) of classes, and another array representing it's probabilities
 func (t *ID3DecisionTree) PredictProba(what base.FixedDataGrid) (ClassesProba, error) {
 	d := t.Root
 	predictions := base.GeneratePredictionVector(what)
@@ -536,10 +537,10 @@ func (t *ID3DecisionTree) PredictProba(what base.FixedDataGrid) (ClassesProba, e
 
 	_, rowCount := what.Size()
 	if rowCount > 1 {
-		panic("PredictProba supports only 1 row predictions")
+		return nil, fmt.Errorf("PredictProba supports only 1 row predictions")
 	}
 	var results ClassesProba
-	what.MapOverRows(predAttrSpecs, func(row [][]byte, rowNo int) (bool, error) {
+	whatErr := what.MapOverRows(predAttrSpecs, func(row [][]byte, rowNo int) (bool, error) {
 		cur := d
 		for {
 			if cur.Children == nil {
@@ -560,7 +561,7 @@ func (t *ID3DecisionTree) PredictProba(what base.FixedDataGrid) (ClassesProba, e
 				if err != nil {
 					//predictions.Set(classAttrSpec, rowNo, classAttr.GetSysValFromString(cur.Class))
 					//break
-					panic(err)
+					return false, err
 				}
 
 				var classVar string
@@ -593,7 +594,7 @@ func (t *ID3DecisionTree) PredictProba(what base.FixedDataGrid) (ClassesProba, e
 		}
 		return true, nil
 	})
-	return results, nil
+	return results, whatErr
 }
 
 //

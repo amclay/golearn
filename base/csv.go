@@ -150,13 +150,19 @@ func ParseCSVGetAttributes(filepath string, hasHeaders bool) []Attribute {
 
 // ParseCSVGetAttributesFromBytes returns an ordered slice of appropriate-ly typed
 // and named Attributes.
-func ParseCSVGetAttributesFromBytes(byteArray []byte, hasHeaders bool) []Attribute {
-	attrs := ParseCSVSniffAttributeTypesFromBytes(byteArray, hasHeaders)
-	names := ParseCSVSniffAttributeNamesFromBytes(byteArray, hasHeaders)
+func ParseCSVGetAttributesFromBytes(byteArray []byte, hasHeaders bool) ([]Attribute, error) {
+	attrs, err := ParseCSVSniffAttributeTypesFromBytes(byteArray, hasHeaders)
+	if err != nil {
+		return nil, err
+	}
+	names, err := ParseCSVSniffAttributeNamesFromBytes(byteArray, hasHeaders)
+	if err != nil {
+		return nil, err
+	}
 	for i, attr := range attrs {
 		attr.SetName(names[i])
 	}
-	return attrs
+	return attrs, nil
 }
 
 // ParseCSVSniffAttributeNames returns a slice containing the top row
@@ -190,25 +196,25 @@ func ParseCSVSniffAttributeNames(filepath string, hasHeaders bool) []string {
 
 // ParseCSVSniffAttributeNamesFromBytes returns a slice containing the top row
 // of a given CSV file, or placeholders if hasHeaders is false.
-func ParseCSVSniffAttributeNamesFromBytes(byteArray []byte, hasHeaders bool) []string {
+func ParseCSVSniffAttributeNamesFromBytes(byteArray []byte, hasHeaders bool) ([]string, error) {
 	buffer := bytes.NewBuffer(byteArray)
 	reader := csv.NewReader(buffer)
 	headers, err := reader.Read()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if hasHeaders {
 		for i, h := range headers {
 			headers[i] = strings.TrimSpace(h)
 		}
-		return headers
+		return headers, nil
 	}
 
 	for i := range headers {
 		headers[i] = fmt.Sprintf("%d", i)
 	}
-	return headers
+	return headers, nil
 
 }
 
@@ -271,7 +277,7 @@ func ParseCSVSniffAttributeTypes(filepath string, hasHeaders bool) []Attribute {
 //
 // The type of a given attribute is determined by looking at the first data row
 // of the CSV.
-func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) []Attribute {
+func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) ([]Attribute, error) {
 	buffer := bytes.NewBuffer(byteArray)
 	var attrs []Attribute
 	// Create the CSV reader
@@ -280,13 +286,13 @@ func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) []A
 		// Skip the headers
 		_, err := reader.Read()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 	// Read the first line of the file
 	columns, err := reader.Read()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for _, entry := range columns {
@@ -294,7 +300,7 @@ func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) []A
 		entry = strings.Trim(entry, " ")
 		matched, err := regexp.MatchString("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", entry)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		if matched {
 			attrs = append(attrs, NewFloatAttribute(""))
@@ -306,7 +312,7 @@ func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) []A
 	// Estimate file precision
 	maxP, err := ParseCSVEstimateFilePrecisionFromBytes(byteArray)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	for _, a := range attrs {
 		if f, ok := a.(*FloatAttribute); ok {
@@ -314,7 +320,7 @@ func ParseCSVSniffAttributeTypesFromBytes(byteArray []byte, hasHeaders bool) []A
 		}
 	}
 
-	return attrs
+	return attrs, nil
 }
 
 // ParseCSVBuildInstancesFromReader updates an [[#UpdatableDataGrid]] from a io.Reader
@@ -412,7 +418,10 @@ func ParseCSVToInstancesFromBytes(byteArray []byte, hasHeaders bool) (instances 
 	}
 
 	// Read the row headers
-	attrs := ParseCSVGetAttributesFromBytes(byteArray, hasHeaders)
+	attrs, err := ParseCSVGetAttributesFromBytes(byteArray, hasHeaders)
+	if err != nil {
+		return nil, err
+	}
 	specs := make([]AttributeSpec, len(attrs))
 	// Allocate the Instances to return
 	instances = NewDenseInstances()
