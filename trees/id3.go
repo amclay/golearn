@@ -690,7 +690,6 @@ func (t *ID3DecisionTree) Save(filePath string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("writer: %v", writer)
 	return t.SaveWithPrefix(writer, "")
 }
 

@@ -350,7 +350,6 @@ func (KNN *KNNClassifier) Save(filePath string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("writer: %v", writer)
 	return KNN.SaveWithPrefix(writer, "")
 }
 

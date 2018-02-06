@@ -342,7 +342,7 @@ func ParseCSVSniffAttributeTypesFromReader(r io.ReadSeeker, hasHeaders bool) []A
 	return attrs
 }
 
-// ParseCSVBuildInstancesFromReader updates an [[#UpdatableDataGrid]] from a io.Reader
+// ParseCSVBuildInstancesFromBuffer updates an [[#UpdatableDataGrid]] from a io.Reader
 func ParseCSVBuildInstancesFromBuffer(r io.Reader, attrs []Attribute, hasHeader bool, u UpdatableDataGrid) (err error) {
 	var rowCounter int
 

@@ -244,7 +244,6 @@ func (lr *LinearSVC) Save(filePath string) error {
 	defer func() {
 		writer.Close()
 	}()
-	fmt.Printf("writer: %v", writer)
 	return lr.SaveWithPrefix(writer, "")
 }
 
