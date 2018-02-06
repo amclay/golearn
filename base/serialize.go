@@ -284,14 +284,6 @@ func (c *ClassifierSerializer) Close() error {
 		return fmt.Errorf("Could not close file writer: %s", err)
 	}
 
-	log.Printf("Closed ClassifierSerializerStub at %s", c.f.Name())
-
-	//if err := c.f.Close(); err != nil {
-	//	return fmt.Errorf("Could not close file: %s", err)
-	//}
-
-	os.Rename(c.f.Name(), c.filePath)
-
 	return nil
 }
 
@@ -390,8 +382,8 @@ func (c *ClassifierSerializer) WriteMetadataAtPrefix(prefix string, metadata Cla
 // and writes the METADATA header.
 func CreateSerializedClassifierStub(filePath string, metadata ClassifierMetadataV1) (*ClassifierSerializer, error) {
 
-	// Write to a temporary path so we don't corrupt the output file
-	f, err := ioutil.TempFile(os.TempDir(), "clsTmp")
+	// Open the filePath
+	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -404,8 +396,6 @@ func CreateSerializedClassifierStub(filePath string, metadata ClassifierMetadata
 		gzipWriter: gzWriter,
 		fileWriter: f,
 		tarWriter:  tw,
-		f:          f,
-		filePath:   filePath,
 	}
 
 	//

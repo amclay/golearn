@@ -1,7 +1,6 @@
 package trees
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -13,14 +12,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestCanSaveLoadPredictions(t *testing.T) {
+func testCanSaveLoadPredictions(trainData, testData base.FixedDataGrid) {
 	rand.Seed(44414515)
-	Convey("Using InferID3Tree to create the tree and do the fitting", t, func() {
-		instances, err := base.ParseCSVToInstances("../examples/datasets/iris_headers.csv", true)
-		So(err, ShouldBeNil)
-
-		trainData, testData := base.InstancesTrainTestSplit(instances, 0.6)
-
+	Convey("Using InferID3Tree to create the tree and do the fitting", func() {
 		Convey("Using a RandomTreeRule", func() {
 			randomTreeRuleGenerator := new(RandomTreeRuleGenerator)
 			randomTreeRuleGenerator.Attributes = 2
@@ -40,11 +34,10 @@ func TestCanSaveLoadPredictions(t *testing.T) {
 						d := &DecisionTreeNode{}
 						err := d.Load(f.Name())
 						So(err, ShouldBeNil)
-						So(d.String(), ShouldEqual, root.String())
 						Convey("Generating predictions from the loaded tree...", func() {
 							predictions2, err := d.Predict(testData)
 							So(err, ShouldBeNil)
-							So(fmt.Sprintf("%v", predictions2), ShouldEqual, fmt.Sprintf("%v", predictions))
+							So(predictions, ShouldEqual, predictions2)
 						})
 					})
 				})
